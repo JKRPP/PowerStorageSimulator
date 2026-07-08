@@ -30,7 +30,7 @@ def data_selector_columns(left_text:str, right_text:str):
         out: Set of the left and right date as datetime.date
     """
 
-    col1, col2, col3 = st.columns([1, 1, 1])
+    col1, col2 = st.columns([1, 1])
     with col1:
         out_start = st.date_input(left_text,value="2026-07-01")
     with col2:

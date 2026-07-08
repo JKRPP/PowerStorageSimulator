@@ -8,7 +8,7 @@ from utils.power_plant import StoragePowerPlant
 
 st.set_page_config(
     page_title="Netzspeichersimulation",
-    #layout="wide",
+    layout="wide",
 )
 
 data_loaded = False
@@ -20,49 +20,52 @@ if "price_df" in st.session_state:
 
 st.title("Simulation eines Netzspeichers")
 
-with st.container(border=True, horizontal_alignment="right"):
-    st.subheader("Stromdaten laden")
-    selections = data_selector_columns("Startdatum", "Enddatum")
-    if button_columns("Daten des Fraunhofer-Instituts laden", "Daten laden"):
-        st.session_state["price_df"] = get_prices(**selections)
-        data_loaded = True
-    if data_loaded:
-        st.success("Daten erfolgreich geladen!")
+col1, col2 = st.columns(2)
 
-## Only render rest of page if data is loaded
+with col1:
+    with st.container(border=True, horizontal_alignment="right"):
+        st.subheader("Stromdaten laden")
+        selections = data_selector_columns("Startdatum", "Enddatum")
+        if button_columns("Daten des Fraunhofer-Instituts laden", "Daten laden"):
+            st.session_state["price_df"] = get_prices(**selections)
+            data_loaded = True
+        if data_loaded:
+            st.success("Daten erfolgreich geladen!")
 
-if not data_loaded:
-    st.stop()
+    ## Only render rest of page if data is loaded
 
-with st.container(border=True):
-    if data_loaded:
-        st.subheader("Strompreis (Day-Ahead)")
-        with st.spinner("Grafik wird gerendert, bitte warten..."):
-            prices = st.session_state["price_df"]
-            st.line_chart(prices, y="price_eur_mwh")
+    if not data_loaded:
+        st.stop()
 
-with st.container(border=True):
-    st.subheader("Simulierter Netzspeicher")
-    title, metrics = plant_selector()
-    plant = StoragePowerPlant(**metrics)
-    pp_metrics(plant)
-    day, alg, simulate_ok = simulation_options(st.session_state["price_df"])
+    with st.container(border=True):
+        if data_loaded:
+            st.subheader("Strompreis (Day-Ahead)")
+            with st.spinner("Grafik wird gerendert, bitte warten..."):
+                prices = st.session_state["price_df"]
+                st.line_chart(prices, y="price_eur_mwh")
+
+    with st.container(border=True):
+        st.subheader("Simulierter Netzspeicher")
+        title, metrics = plant_selector()
+        plant = StoragePowerPlant(**metrics)
+        pp_metrics(plant)
+        day, alg, simulate_ok = simulation_options(st.session_state["price_df"])
 
 ## Only render rest of page if user has started simulation
 
 if not simulate_ok:
     st.stop()
 
-result_container = st.container(border=True)
+with col2:
+    result_container = st.container(border=True)
+    with result_container:
+        st.subheader("Simulationsergebnis")
+        if simulate_ok:
+            date_df = st.session_state["price_df"][st.session_state["price_df"]["date"] == day]
+            day_results = plant.process_day(date_df, alg)
 
-with result_container:
-    st.subheader("Simulationsergebnis")
-    if simulate_ok:
-        date_df = st.session_state["price_df"][st.session_state["price_df"]["date"] == day]
-        day_results = plant.process_day(date_df, alg)
+            charge_metrics(day_results)
+            charge_visualization(day_results)
 
-        charge_metrics(day_results)
-        charge_visualization(day_results)
-
-        mix_day = get_generation_mix([day,day], "de")
-        residual_load_bars(mix_day, day_results)
+            mix_day = get_generation_mix([day,day], "de")
+            residual_load_bars(mix_day, day_results)
