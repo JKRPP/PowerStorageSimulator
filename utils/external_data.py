@@ -1,5 +1,4 @@
 import requests
-import datetime
 import pandas as pd
 
 BASE = "https://api.energy-charts.info"

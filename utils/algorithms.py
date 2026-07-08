@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import math
 
+
 def single_cycle(plant, day_data: pd.DataFrame):
     """
     Calculates a Loading pattern based on a greedy single-cycle approach.
@@ -21,7 +22,7 @@ def single_cycle(plant, day_data: pd.DataFrame):
     required_intervals = plant.flexibility / interval_energy
     full_power_intervals = math.floor(required_intervals)
     partial_power_interval = required_intervals % 1
-    
+
     ## Find cheapest times to charge
     price_sorted = data.sort_values("price_eur_mwh")
     charge_indices = []
@@ -32,19 +33,21 @@ def single_cycle(plant, day_data: pd.DataFrame):
 
     if partial_power_interval > 0:
         partial_power_idx = price_sorted.index[full_power_intervals]
-        data.loc[partial_power_idx, "Loading"] = partial_power_interval * interval_energy
-    
+        data.loc[partial_power_idx, "Loading"] = (
+            partial_power_interval * interval_energy
+        )
+
     ## Find most profitable times to discharge
     price_sorted_desc = data.sort_values("price_eur_mwh", ascending=False)
     used_for_discharge = set()
-    
+
     # For each charge time, find the best later discharge time
     for charge_idx in charge_indices:
         # Find the most expensive later time
         later_times = price_sorted_desc[
-            (price_sorted_desc.index > charge_idx) & 
-            (price_sorted_desc["Loading"] == 0.0) &
-            (~price_sorted_desc.index.isin(used_for_discharge))
+            (price_sorted_desc.index > charge_idx)
+            & (price_sorted_desc["Loading"] == 0.0)
+            & (~price_sorted_desc.index.isin(used_for_discharge))
         ]
         ## Remove the charge if there is no time to discharge
         if len(later_times) == 0:
@@ -57,18 +60,21 @@ def single_cycle(plant, day_data: pd.DataFrame):
 
     if partial_power_interval > 0:
         later_times = price_sorted_desc[
-            (price_sorted_desc.index > partial_power_idx) &
-            (price_sorted_desc["Loading"] == 0.0) &
-            (~price_sorted_desc.index.isin(used_for_discharge))
+            (price_sorted_desc.index > partial_power_idx)
+            & (price_sorted_desc["Loading"] == 0.0)
+            & (~price_sorted_desc.index.isin(used_for_discharge))
         ]
         ## Remove the charge if there is no time to discharge
         if len(later_times) == 0:
             data.loc[partial_power_idx, "Loading"] = 0
         else:
             discharge_idx = later_times.index[0]
-            data.loc[discharge_idx, "Loading"] = interval_energy*partial_power_interval*-1
+            data.loc[discharge_idx, "Loading"] = (
+                interval_energy * partial_power_interval * -1
+            )
 
     return data
+
 
 def optimal_linalg(plant, day_data: pd.DataFrame):
     """
@@ -95,14 +101,18 @@ def optimal_linalg(plant, day_data: pd.DataFrame):
     ## Set up limit matrices to enforce charge within limits
     bounds = [(0, interval_energy)] * (2 * N)
     L = np.tril(np.ones((N, N)))
-    A_ub = np.block([
-        [L, -L],
-        [-L, L],
-    ])
-    b_ub = np.concatenate([
-        np.full(N, plant.flexibility),
-        np.zeros(N),
-    ])
+    A_ub = np.block(
+        [
+            [L, -L],
+            [-L, L],
+        ]
+    )
+    b_ub = np.concatenate(
+        [
+            np.full(N, plant.flexibility),
+            np.zeros(N),
+        ]
+    )
 
     ## Compute linear solve and return result
     result = linprog(cost_total, A_ub=A_ub, b_ub=b_ub, bounds=bounds)

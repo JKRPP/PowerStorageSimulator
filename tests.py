@@ -4,12 +4,16 @@ import pytest
 
 
 def test_plant_init():
-    plant = StoragePowerPlant(power=10.0, capacity=15.0, upper_limit=0.9, lower_limit=0.1)
+    plant = StoragePowerPlant(
+        power=10.0, capacity=15.0, upper_limit=0.9, lower_limit=0.1
+    )
     assert plant.flexibility == pytest.approx(15.0 * 0.9 - 15.0 * 0.1)
 
 
 def test_charge_calc_profit_arithmetic():
-    plant = StoragePowerPlant(efficiency=0.9, degradation=5.0, capacity=15.0, lower_limit=0.1, upper_limit=0.9)
+    plant = StoragePowerPlant(
+        efficiency=0.9, degradation=5.0, capacity=15.0, lower_limit=0.1, upper_limit=0.9
+    )
     test_df = pd.DataFrame()
     test_df["price_eur_mwh"] = [100, 100, 100, 100, 100, 100]
     test_df["Loading"] = [0, 1, 1, -1, -1, 0]

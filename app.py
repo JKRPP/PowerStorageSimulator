@@ -1,6 +1,15 @@
 import streamlit as st
 
-from utils.ui_elements import button_columns, charge_metrics, data_selector_columns, pp_metrics, charge_visualization, simulation_options, residual_load_bars, plant_selector
+from utils.ui_elements import (
+    button_columns,
+    charge_metrics,
+    data_selector_columns,
+    pp_metrics,
+    charge_visualization,
+    simulation_options,
+    residual_load_bars,
+    plant_selector,
+)
 from utils.external_data import get_prices, get_generation_mix
 from utils.power_plant import StoragePowerPlant
 
@@ -61,11 +70,13 @@ with col2:
     with result_container:
         st.subheader("Simulationsergebnis")
         if simulate_ok:
-            date_df = st.session_state["price_df"][st.session_state["price_df"]["date"] == day]
+            date_df = st.session_state["price_df"][
+                st.session_state["price_df"]["date"] == day
+            ]
             day_results = plant.process_day(date_df, alg)
 
             charge_metrics(day_results)
             charge_visualization(day_results)
 
-            mix_day = get_generation_mix([day,day], "de")
+            mix_day = get_generation_mix([day, day], "de")
             residual_load_bars(mix_day, day_results)
